@@ -1,0 +1,12 @@
+{
+  "name": "gff-viewer",
+  "version": "1.0.0",
+  "description": "Interactive GFF/GTF annotation viewer with feature type coloring, attribute parsing, and region statistics",
+  "extensions": [
+    "gff",
+    "gtf",
+    "gff3"
+  ],
+  "entry": "index.js",
+  "style": "style.css"
+}
