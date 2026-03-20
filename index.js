@@ -301,7 +301,7 @@
   }
 
   function _renderIgv(container, fileUrl, filename, trackType, trackFormat) {
-    container.innerHTML = '<div id="__igv_div__">Loading IGV.js...</div>';
+    container.innerHTML = '<div id="__igv_div__" class="ap-loading">Loading...</div>';
     _loadIgvJs().then(function() {
       var div = document.getElementById('__igv_div__');
       if (!div) return;
@@ -325,7 +325,7 @@
   var TRACK_FORMAT = 'gff3';
 
   function _renderData(container, fileUrl, filename) {
-    container.innerHTML = '<div class="gff-loading">Loading ' + filename + '...</div>';
+    container.innerHTML = '<div class="ap-loading">Loading...</div>';
     allRecords = []; filteredRecords = []; sortCol = -1; sortAsc = true;
     currentPage = 0; filterText = ''; filterChrom = ''; filterType = '';
 
