@@ -145,16 +145,15 @@
     var stats = computeStats(filteredRecords);
     var chroms = getUniqueCol(allRecords, 0);
     var types = getUniqueCol(allRecords, 2);
-    var totalPages = Math.max(1, Math.ceil(filteredRecords.length / PAGE_SIZE));
-    if (currentPage >= totalPages) currentPage = totalPages - 1;
+    var totalPages = Math.max(1, Math.ceil(_totalRecords / PAGE_SIZE));
     var startIdx = currentPage * PAGE_SIZE;
-    var pageRecs = filteredRecords.slice(startIdx, startIdx + PAGE_SIZE);
+    var pageRecs = filteredRecords;
 
     var html = '<div class="gff-plugin">';
 
     // Summary
     html += '<div class="gff-summary">';
-    html += '<span class="stat"><b>' + formatNum(filteredRecords.length) + '</b> features</span>';
+    html += '<span class="stat"><b>' + formatNum(_totalRecords) + '</b> features</span>';
     html += '<span class="stat"><b>' + chroms.length + '</b> chromosomes</span>';
     html += '<span class="stat"><b>' + types.length + '</b> feature types</span>';
     html += '<span class="stat">Avg length: <b>' + formatNum(stats.avg) + ' bp</b></span>';
@@ -242,10 +241,10 @@
     for (var i = 0; i < pbs.length; i++) {
       pbs[i].addEventListener('click', function() {
         var pg = this.getAttribute('data-page');
-        if (pg === 'prev') { if (currentPage > 0) currentPage--; }
-        else if (pg === 'next') { var tp = Math.ceil(filteredRecords.length / PAGE_SIZE); if (currentPage < tp - 1) currentPage++; }
-        else { currentPage = parseInt(pg, 10); }
-        render();
+        var tp = Math.ceil(_totalRecords / PAGE_SIZE);
+        if (pg === 'prev') { if (currentPage > 0) _loadPage(currentPage - 1); }
+        else if (pg === 'next') { if (currentPage < tp - 1) _loadPage(currentPage + 1); }
+        else { _loadPage(parseInt(pg, 10)); }
       });
     }
   }
@@ -324,21 +323,48 @@
   var TRACK_TYPE = 'annotation';
   var TRACK_FORMAT = 'gff3';
 
+  var _totalRecords = 0;
+  var _currentFilename = '';
+
+  function _fetchPage(filename, page) {
+    return fetch('/data/' + encodeURIComponent(filename) + '?page=' + page + '&page_size=' + PAGE_SIZE)
+      .then(function(resp) { return resp.json(); });
+  }
+
+  function _loadPage(page) {
+    var target = (rootEl && rootEl.querySelector('#__plugin_content__')) || rootEl;
+    if (!target) return;
+    target.innerHTML = '<div class="ap-loading">Loading...</div>';
+
+    _fetchPage(_currentFilename, page).then(function(data) {
+      if (data.error) {
+        target.innerHTML = '<p style="color:red;padding:16px;">Error: ' + data.error + '</p>';
+        return;
+      }
+      _totalRecords = data.total || _totalRecords;
+      currentPage = page;
+      var text = '';
+      if (data.rows) {
+        for (var i = 0; i < data.rows.length; i++) {
+          var row = data.rows[i];
+          text += (Array.isArray(row) ? row.join('\t') : row) + '\n';
+        }
+      }
+      allRecords = parse(text);
+      filteredRecords = allRecords.slice();
+      sortCol = -1; sortAsc = true; filterText = ''; filterChrom = ''; filterType = '';
+      render();
+    }).catch(function(err) {
+      target.innerHTML = '<p style="color:red;padding:16px;">Error: ' + err.message + '</p>';
+    });
+  }
+
   function _renderData(container, fileUrl, filename) {
     container.innerHTML = '<div class="ap-loading">Loading...</div>';
     allRecords = []; filteredRecords = []; sortCol = -1; sortAsc = true;
     currentPage = 0; filterText = ''; filterChrom = ''; filterType = '';
-
-    fetch(fileUrl)
-      .then(function(resp) { return resp.text(); })
-      .then(function(data) {
-        allRecords = parse(data);
-        filteredRecords = allRecords.slice();
-        render();
-      })
-      .catch(function(err) {
-        container.innerHTML = '<p style="color:red;padding:16px;">Error loading file: ' + err.message + '</p>';
-      });
+    _currentFilename = filename;
+    _loadPage(0);
   }
 
   function _showView(container, fileUrl, filename) {
