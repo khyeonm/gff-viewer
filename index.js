@@ -369,6 +369,7 @@
   window.AutoPipePlugin = {
     render: function(container, fileUrl, filename) {
       rootEl = container;
+      rootEl.innerHTML = '<div class="ap-loading">Loading...</div>';
       _igvMode = 'data';
       _selectedGenome = null;
 
